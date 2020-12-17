@@ -1,32 +1,44 @@
-/* eslint-disable no-console */
+import { Workbox } from "workbox-window";
 
-import { register } from 'register-service-worker'
+let wb;
 
-if (process.env.NODE_ENV === 'production') {
-  register(`${process.env.BASE_URL}service-worker.js`, {
-    ready () {
-      console.log(
-        'App is being served from cache by a service worker.\n' +
-        'For more details, visit https://goo.gl/AFskqB'
-      )
-    },
-    registered () {
-      console.log('Service worker has been registered.')
-    },
-    cached () {
-      console.log('Content has been cached for offline use.')
-    },
-    updatefound () {
-      console.log('New content is downloading.')
-    },
-    updated () {
-      console.log('New content is available; please refresh.')
-    },
-    offline () {
-      console.log('No internet connection found. App is running in offline mode.')
-    },
-    error (error) {
-      console.error('Error during service worker registration:', error)
-    }
-  })
+if ("serviceWorker" in navigator) {
+  wb = new Workbox(`${process.env.BASE_URL}service-worker.js`);
+
+  wb.addEventListener("controlling", () => {
+    window.location.reload();
+  });
+
+  wb.register();
+
+  var CACHE_NAME = 'my-offline-cache';
+  var urlsToCache = [
+  '/',
+  '/css/app.fc24272a.css',
+  '/js/app.918cd361.js',
+  '/js/chunk-vendors.589bada7.js',
+];
+
+self.addEventListener('install', function(event) {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(function(cache) {
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    fetch(event.request).catch(function() {
+      caches.match(event.request).then(function(response) {
+        return response;
+      }
+    );
+  );
+});
+} else {
+  wb = null;
 }
+
+export default wb;
